@@ -1,0 +1,4 @@
+#!/bin/bash
+# Lanzador: ejecuta el paquete missiontab que está junto a este script.
+DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+exec env PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}" python3 -m missiontab "$@"
