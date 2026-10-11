@@ -5,7 +5,8 @@ escritorio actual en mosaico. Todo se dibuja con cairo (como ListTab) para contr
   arrastrar ventana          soltarla sobre un escritorio = moverla ahí · sobre "+" = escritorio nuevo con ella
   clic en escritorio         ir a ese escritorio          · "×" (al pasar el mouse) = borrarlo
   "+"                        crear escritorio
-  Esc / atajo / clic fondo   salir
+  hover 700 ms en escritorio verlo sin salir (cambia de verdad; la vista está en todos los escritorios)
+  Esc / atajo / clic fondo   salir sin elegir: vuelve al escritorio donde se abrió
   flechas + Enter            elegir ventana · 1–9 = ir al escritorio N · Ctrl+←/→ = cambiar de escritorio en vivo
 """
 import math
@@ -19,6 +20,7 @@ from missiontab import layout, log, model
 ACCENT = (10 / 255, 132 / 255, 255 / 255)       # azul de selección de macOS
 DIM = 0.42                                       # oscurecido del fondo de escritorio
 DRAG_THRESHOLD = 8
+HOVER_MS = 700                                   # mouse quieto sobre un escritorio = verlo
 
 
 def _rounded(cr, x, y, w, h, r):
@@ -331,6 +333,8 @@ class Overlay:
         thumbs.on_update = self._thumb_updated
         self.visible = False
         self._press = None
+        self._hover_src = None
+        self.origin = 0            # escritorio donde se abrió (Esc vuelve ahí)
 
         self.win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.win.set_title("MissionTab")
@@ -374,7 +378,7 @@ class Overlay:
     # --- mostrar / ocultar -----------------------------------------------------------------------------
 
     def toggle(self):
-        self.hide() if self.visible else self.show()
+        self.cancel() if self.visible else self.show()
 
     def show(self):
         display = Gdk.Display.get_default()
@@ -386,20 +390,21 @@ class Overlay:
         v.hover = v.drag = v.drop = None
         v.sel = 0
         v.load(ignore={self.xid})
+        self.origin = v.cur
         v.sel = 1 if len(v.cards) > 1 else (0 if v.cards else None)   # como Alt+Tab: la anterior
         self.thumbs.request(self.thumbs.visible_xids({self.xid}))      # refrescar las visibles
         self.win.move(geo.x, geo.y)
         self.win.resize(geo.width, geo.height)
         self.visible = True
         self.win.show_all()
+        self.win.stick()           # en todos los escritorios: sigue visible al cambiar de escritorio desde aquí
         self.win.fullscreen()
         self.win.present_with_time(self._now())
         self.area.grab_focus()
         log.write(f"show: {len(v.spaces)} escritorios, {len(v.cards)} ventanas en el {v.cur + 1}")
 
     def hide(self):
-        import traceback
-        log.write("hide desde: " + " < ".join(f"{f.name}:{f.lineno}" for f in traceback.extract_stack()[-4:-1]))
+        self._cancel_hover()
         self.visible = False
         self.view.drag = self.view.drop = None
         self._press = None
@@ -429,10 +434,19 @@ class Overlay:
         self.hide()
         model.switch(i, ts or self._now())
 
-    def _switch_live(self, delta):
+    def cancel(self):
+        """Salir sin elegir (Esc, clic en el fondo, el atajo otra vez): si se estuvo mirando otro escritorio,
+        volver a donde se abrió, como Mission Control."""
+        if self.visible and self.view.cur != self.origin:
+            model.switch(self.origin, self._now())
+        self.hide()
+
+    def _view_space(self, i):
+        """Ver el escritorio i sin salir: se cambia de verdad (sus ventanas quedan mapeadas detrás de la vista
+        y se pueden capturar) y se redibuja con sus ventanas."""
         v = self.view
-        i = v.cur + delta
-        if 0 <= i < len(v.spaces):
+        if 0 <= i < len(v.spaces) and i != v.cur:
+            log.write(f"ver escritorio {i + 1}")
             model.switch(i, self._now())
             v.cur = i
             v.sel = 0
@@ -440,6 +454,8 @@ class Overlay:
             self.area.queue_draw()
             self.thumbs.refresh_visible(350)   # las de ese escritorio ya están mapeadas (detrás de la vista)
             self.reload(300)
+            # al cambiar, Marco enfoca una ventana del escritorio nuevo: recuperar el foco (si no, Esc no llega)
+            GLib.timeout_add(150, lambda: (self.visible and self.win.present_with_time(self._now()), False)[1])
 
     # --- mouse ---------------------------------------------------------------------------------------
 
@@ -448,6 +464,7 @@ class Overlay:
         if self._press and self._press[0] and self._press[0][0] == "card":
             if not v.drag and math.hypot(ev.x - self._press[1], ev.y - self._press[2]) > DRAG_THRESHOLD:
                 v.drag = {"card": self._press[0][1], "moving": True}
+                self._cancel_hover()
             if v.drag:
                 v.drag["x"], v.drag["y"] = ev.x, ev.y
                 h = v.hit(ev.x, ev.y)
@@ -457,8 +474,24 @@ class Overlay:
         h = v.hit(ev.x, ev.y)
         if h != v.hover:
             v.hover = h
+            self._cancel_hover()
+            if h and h[0] == "space" and h[1] != v.cur:
+                i = h[1]
+                self._hover_src = GLib.timeout_add(HOVER_MS, self._self_hover_fire, i)
             self.area.queue_draw()
         return True
+
+    def _self_hover_fire(self, i):
+        self._hover_src = None
+        v = self.view
+        if self.visible and not v.drag and v.hover == ("space", i):
+            self._safe(lambda: self._view_space(i))()
+        return False
+
+    def _cancel_hover(self):
+        if self._hover_src:
+            GLib.source_remove(self._hover_src)
+            self._hover_src = None
 
     def _press_cb(self, _w, ev):
         if ev.button == 1:
@@ -484,7 +517,7 @@ class Overlay:
             self.area.queue_draw()
             return True
         if target is None:
-            self.hide()                                # clic en el fondo: salir
+            self.cancel()                              # clic en el fondo: salir sin elegir
         elif target[0] == "card":
             self._go_window(target[1], ev.time)
         elif target[0] == "space":
@@ -505,11 +538,11 @@ class Overlay:
         ctrl = bool(ev.state & Gdk.ModifierType.CONTROL_MASK)
         n = len(v.cards)
         if key == "Escape":
-            self.hide()
+            self.cancel()
         elif key in ("Return", "KP_Enter", "space") and v.sel is not None and n:
             self._go_window(v.sel, ev.time)
         elif ctrl and key in ("Left", "Right"):
-            self._switch_live(-1 if key == "Left" else 1)
+            self._view_space(v.cur + (-1 if key == "Left" else 1))
         elif key in ("Left", "Right", "Tab", "ISO_Left_Tab") and n:
             back = key in ("Left", "ISO_Left_Tab")
             v.sel = ((v.sel or 0) + (-1 if back else 1)) % n
