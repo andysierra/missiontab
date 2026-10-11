@@ -207,6 +207,10 @@ class View:
             if self.drag and self.drag["card"] == i and self.drag.get("moving"):
                 continue
             self._draw_card(cr, i, win, rect)
+        if not self.drag:                                # título de la tarjeta elegida, encima de todo
+            k = self.hover[1] if self.hover and self.hover[0] == "card" else self.sel
+            if k is not None and 0 <= k < len(self.cards):
+                self._draw_title(cr, *self.cards[k])
         if self.drag and self.drag.get("moving"):
             win, (x, y, w, h) = self.cards[self.drag["card"]]
             s = 0.55
@@ -306,17 +310,20 @@ class View:
         # ícono de la app, montado sobre el borde inferior
         isz = max(28, min(52, h * 0.22))
         self._paint_icon(cr, win.icon, x + w / 2, y + h, isz, alpha)
-        if highlighted:
-            title = win.title + ("  · minimizada" if win.minimized else "")
-            lay = self._font(cr, title, max(12, self.H * 0.013), bold=True, max_w=max(w, 260))
-            tw, th = lay.get_pixel_size()
-            bx, by = x + (w - tw) / 2 - 10, y + h + isz / 2 + 6
-            _rounded(cr, bx, by, tw + 20, th + 8, (th + 8) / 2)
-            cr.set_source_rgba(0, 0, 0, 0.6)
-            cr.fill()
-            cr.move_to(bx + 10, by + 4)
-            cr.set_source_rgb(1, 1, 1)
-            PangoCairo.show_layout(cr, lay)
+
+    def _draw_title(self, cr, win, rect):
+        x, y, w, h = rect
+        isz = max(28, min(52, h * 0.22))
+        title = win.title + ("  · minimizada" if win.minimized else "")
+        lay = self._font(cr, title, max(12, self.H * 0.013), bold=True, max_w=max(w, 260))
+        tw, th = lay.get_pixel_size()
+        bx, by = x + (w - tw) / 2 - 10, y + h + isz / 2 + 6
+        _rounded(cr, bx, by, tw + 20, th + 8, (th + 8) / 2)
+        cr.set_source_rgba(0, 0, 0, 0.6)
+        cr.fill()
+        cr.move_to(bx + 10, by + 4)
+        cr.set_source_rgb(1, 1, 1)
+        PangoCairo.show_layout(cr, lay)
 
     def render_png(self, path):
         surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.W, self.H)

@@ -6,7 +6,7 @@ con las miniaturas ya en caché.
 """
 from gi.repository import Gio, GLib, Gtk
 
-from missiontab import log
+from missiontab import log, shortcut
 from missiontab.overlay import Overlay
 from missiontab.thumbs import Thumbs
 
@@ -24,6 +24,10 @@ class App(Gtk.Application):
         self.thumbs = Thumbs()
         self.overlay = Overlay(self.thumbs)
         self.thumbs.start()
+        try:
+            shortcut.ensure()       # Ctrl+Super+↑ si todavía no hay un atajo para MissionTab
+        except Exception as e:
+            log.write(f"atajo: {e}")
         log.write("startup")
 
     def do_command_line(self, command_line):

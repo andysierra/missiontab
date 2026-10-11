@@ -12,6 +12,7 @@ HELP = f"""MissionTab {missiontab.__version__} — Mission Control para Linux MA
   missiontab --quit          cerrar el proceso residente
   missiontab --list          imprimir escritorios y ventanas
   missiontab --render=X.png  dibujar la vista en un PNG sin mostrarla (pruebas)
+  missiontab --render=X.png --demo   con escritorios y ventanas ficticias (capturas del README)
 """
 
 
@@ -54,9 +55,14 @@ def main():
         v = View(t)
         geo = Gdk.Display.get_default().get_primary_monitor().get_geometry()
         v.W, v.H = geo.width, geo.height
-        v.load()
+        if "--demo" in args:                         # ventanas ficticias (capturas del README)
+            from missiontab import demo
+            v.W, v.H = 1920, 1080
+            demo.load(v)
+        else:
+            v.load()
         v.sel = 1 if len(v.cards) > 1 else 0
-        v.hover = ("space", v.cur)
+        v.hover = ("card", v.sel) if "--demo" in args else ("space", v.cur)
         v.render_png(render)
         print(render, f"{v.W}x{v.H}", f"{len(v.spaces)} escritorios", f"{len(v.cards)} ventanas")
         return

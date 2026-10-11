@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Ícono de MissionTab: escritorios arriba, ventanas en mosaico (misma paleta que ListTab) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3050"/>
+      <stop offset="1" stop-color="#1a1b25"/>
+    </linearGradient>
+    <filter id="sombra" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="brillo" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect x="50" y="50" width="412" height="412" rx="92" fill="url(#bg)" filter="url(#sombra)"/>
+  <!-- barra de escritorios -->
+  <rect x="112" y="106" width="78" height="48" rx="8" fill="#a3abd3" opacity="0.55"/>
+  <rect x="217" y="106" width="78" height="48" rx="8" fill="none" stroke="#ffffff" stroke-width="7"/>
+  <rect x="217" y="106" width="78" height="48" rx="8" fill="#a3abd3" opacity="0.35"/>
+  <rect x="322" y="106" width="78" height="48" rx="8" fill="#a3abd3" opacity="0.55"/>
+  <!-- ventanas en mosaico -->
+  <rect x="112" y="196" width="134" height="92" rx="12" fill="#b796f6"/>
+  <rect x="266" y="196" width="134" height="92" rx="12" fill="#7aa2f7" opacity="0.55" filter="url(#brillo)"/>
+  <rect x="266" y="196" width="134" height="92" rx="12" fill="#7aa2f7"/>
+  <rect x="112" y="308" width="134" height="92" rx="12" fill="#a3abd3"/>
+  <rect x="266" y="308" width="134" height="92" rx="12" fill="#b796f6" opacity="0.7"/>
+  <!-- barra de título de cada ventana -->
+  <g fill="#ffffff" opacity="0.45">
+    <rect x="124" y="208" width="60" height="9" rx="4.5"/><rect x="278" y="208" width="60" height="9" rx="4.5"/>
+    <rect x="124" y="320" width="60" height="9" rx="4.5"/><rect x="278" y="320" width="60" height="9" rx="4.5"/>
+  </g>
+</svg>
