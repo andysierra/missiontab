@@ -49,7 +49,7 @@ Press **Ctrl+Super+↑** (like Ctrl+↑ on a Mac):
 **From a release** (`.deb`, Debian/Ubuntu/Linux Mint with MATE on X11):
 
 ```bash
-sudo apt install ./missiontab_0.1.0_all.deb
+sudo apt install ./missiontab_0.1.1_all.deb
 ```
 
 Then **open MissionTab once** from the applications menu (or log out and back in). From then on it starts at

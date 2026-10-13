@@ -9,4 +9,4 @@ gi.require_version("Wnck", "3.0")
 gi.require_version("Pango", "1.0")
 gi.require_version("PangoCairo", "1.0")
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

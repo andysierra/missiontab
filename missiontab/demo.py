@@ -122,7 +122,7 @@ def load(view):
         for names, app, title, style, x, y, w, h in wins:
             icon = next((p for p in (themed_icon(n) for n in names) if p is not None), None)
             sp.windows.append(Win(xid, title, app, icon, int(x * sx), int(y * sy), int(w * sx), int(h * sy),
-                                  False, i, None))
+                                  False, i, live=False))
             thumbs.cache[xid] = _thumb(style, w // 2, h // 2, xid)
             xid += 1
         spaces.append(sp)

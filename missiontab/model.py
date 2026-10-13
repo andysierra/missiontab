@@ -1,5 +1,5 @@
 """Escritorios virtuales y ventanas (libwnck), y las acciones de Mission Control sobre ellos."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from gi.repository import Gio, GLib, Wnck
 
@@ -20,7 +20,13 @@ class Win:
     h: int
     minimized: bool
     space: int            # índice del escritorio (-1 = en todos)
-    wnck: object = field(default=None, repr=False)
+    live: bool = True     # False en --demo
+
+    @property
+    def wnck(self):
+        """La Wnck.Window pedida a Wnck en el momento (None si ya no existe o es demo). No se guarda: Wnck la
+        libera al cerrarse la ventana y soltar después una referencia guardada tumba el proceso (SIGSEGV)."""
+        return Wnck.Window.get(self.xid) if self.live else None
 
 
 @dataclass
@@ -50,7 +56,7 @@ def snapshot(ignore=()):
         ws = w.get_workspace()
         idx = ws.get_number() if ws is not None and not w.is_pinned() else -1
         win = Win(w.get_xid(), w.get_name() or app, app, icon, x, y, max(ww, 1), max(hh, 1),
-                  w.is_minimized(), idx, w)
+                  w.is_minimized(), idx)
         for sp in spaces:
             if idx == -1 or sp.index == idx:
                 sp.windows.append(win)
@@ -62,6 +68,8 @@ def snapshot(ignore=()):
 def activate(win, ts):
     """Ir a la ventana: cambia a su escritorio si hace falta, la restaura si está minimizada y la enfoca."""
     w = win.wnck
+    if w is None:
+        return
     ws = w.get_workspace()
     if ws is not None and ws != w.get_screen().get_active_workspace():
         ws.activate(ts)
@@ -78,8 +86,9 @@ def switch(index, ts):
 
 def move(win, index):
     ws = screen().get_workspace(index)
-    if ws is not None and win.wnck is not None:
-        win.wnck.move_to_workspace(ws)
+    w = win.wnck
+    if ws is not None and w is not None:
+        w.move_to_workspace(ws)
 
 
 def count():
